@@ -1,6 +1,5 @@
 <?php
-// audit.php - UCC Admin Audit Logs page
-$pageTitle = "Audit Logs";
+$pageTitle = "Audit Trail";
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -20,9 +19,9 @@ $pageTitle = "Audit Logs";
 </head>
 <body data-page-title="<?= htmlspecialchars($pageTitle) ?>">
 <div class="dashboard-layout">
-	<?php include __DIR__ . '/includes/sidebar.php'; ?>
+	<?php include __DIR__ . '/template/sidebar.php'; ?>
 	<main class="main-content">
-		<?php include __DIR__ . '/includes/header.php'; ?>
+		<?php include __DIR__ . '/template/header.php'; ?>
 
 		<section class="posts-page">
 			<div class="posts-intro"><div><p>A read-only record of actions performed in the CMS.</p></div></div>

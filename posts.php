@@ -18,122 +18,13 @@ $pageTitle = "Posts";
 
 
 </head>
-<body>
-	<div class="dashboard-layout">
-		<aside class="sidebar">
-			<div class="sidebar-top">
-				<div class="logo-wrap">
-					<img src="assets/images/ucc-LOGO.png" alt="UCC Logo">
-					<div>
-						<h2>UCC Admin</h2>
-						<p>University of Caloocan City</p>
-					</div>
-				</div>
-			</div>
+<body data-page-title="<?= htmlspecialchars($pageTitle) ?>">
+<div class="dashboard-layout">
+	<?php include __DIR__ . '/template/sidebar.php'; ?>
+	<main class="main-content">
+		<?php include __DIR__ . '/template/header.php'; ?>
 
-			<div class="gold-line"></div>
-
-        <nav class="sidebar-nav">
-            <a href="Dashboard.html">
-                <i data-lucide="house"></i>
-                <span>Dashboard</span>
-            </a>
-
-            <a href="Posts.php" class="active">
-                <i data-lucide="newspaper"></i>
-                <span>Posts</span>
-            </a>
-
-             <div class="menu-group">
-                <button class="menu-title" type="button">
-                    <div>
-                        <i data-lucide="users"></i>
-                        <span>Academics</span>
-                    </div>
-                    <i data-lucide="chevron-down" class="arrow"></i>
-                </button>
-                <div class="submenu">
-                    <a href="Units.html">Units</a>
-                    <a href="Programs.html">Program</a>
-                    <a href="Unit-Information.html">Unit Information</a>
-                    <a href="Unit-News.html">Unit News</a>
-                    <a href="Program-News.html">Program News</a>
-                </div>
-            </div>
-
-
-            <div class="menu-group">
-                <button class="menu-title" type="button">
-                    <div>
-                        <i data-lucide="users"></i>
-                        <span>Officials</span>
-                    </div>
-                    <i data-lucide="chevron-down" class="arrow"></i>
-                </button>
-                <div class="submenu">
-                    <a href="Executive-Officials.html">Executive Officials</a>
-                    <a href="Board-of-Regents.html">Board of Regents</a>
-                </div>
-            </div>
-
-            <div class="menu-group">
-                <button class="menu-title" type="button">
-                    <div>
-                        <i data-lucide="building-2"></i>
-                        <span>Components</span>
-                    </div>
-                    <i data-lucide="chevron-down" class="arrow"></i>
-                </button>
-                <div class="submenu">
-                    <a href="Campuses.html">Campuses</a>
-                    <a href="Contact-Information.html">Contact Information</a>
-                    <a href="About-UCC.html">About UCC</a>
-                    <a href="E-Services.html">E-Services</a>
-                    <a href="Archive.html">Archive</a>
-                    <a href="Quick-Links.html">Quick Links</a>
-                </div>
-            </div>
-        </nav>
-
-        <div class="sidebar-bottom">
-            <a href="Password.html">
-                <i data-lucide="lock"></i>
-                <span>Password</span>
-            </a>
-
-            <a href="Logout.html">
-                <i data-lucide="log-out"></i>
-                <span>Logout</span>
-            </a>
-        </div>
-
-			<div class="sidebar-art"></div>
-		</aside>
-
-		<main class="main-content">
-            <header class="top-header">
-                <div class="header-left">
-                    <h1><?= htmlspecialchars($pageTitle) ?></h1>
-                </div>
-
-            <div class="header-right">
-                <div class="admin-profile">
-                    <div class="admin-text">
-                        <small>Administrator</small>
-                        <span>Welcome, Admin!</span>
-                    </div>
-                    <div class="avatar">
-                        <i data-lucide="circle-user-round"></i>
-                    </div>
-                </div>
-            </div>
-
-                <div class="header-art"></div>
-
-                <div class="gold-divider">
-                    <span></span>
-                </div>
-</header>
+        </header>
 
             <section class="posts-page">
                 <div class="posts-intro">

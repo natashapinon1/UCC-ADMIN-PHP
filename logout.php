@@ -221,27 +221,26 @@ $pageTitle = "Logout";
 		const confirmLogout = document.getElementById("confirmLogout");
 		const cancelLogout = document.getElementById("cancelLogout");
 		const currentPage = document.referrer;
-		if (currentPage && !currentPage.endsWith("/Logout.php") && !currentPage.endsWith("/Logout_Final.php")) {
+		if (currentPage && !currentPage.endsWith("/logout.php") && !currentPage.endsWith("/Logout_Final.php")) {
 			backgroundPage.src = currentPage;
 		} else {
-			backgroundPage.src = "Dashboard.php";
+			backgroundPage.src = "dashboard.php";
 		}
 		cancelLogout.addEventListener("click", () => {
 			if (window.history.length > 1) {
 				window.history.back();
 			} else {
-				window.location.href = "Dashboard.php";
+				window.location.href = "dashboard.php";
 			}
 		});
 		confirmLogout.addEventListener("click", () => {
 			logoutOverlay.style.display = "none";
 			logoutSuccess.classList.add("show");
-			// End the PHP session on the server, then go to the login page.
 			fetch("Logout.php?action=logout", { credentials: "same-origin" })
 				.catch(() => {})
 				.finally(() => {
 					setTimeout(() => {
-						window.location.href = "Login.php";
+						window.location.href = "login.php";
 					}, 1200);
 				});
 		});

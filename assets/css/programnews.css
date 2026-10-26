@@ -103,14 +103,19 @@
 .programnews-card-head h2 { margin: 0; color: #0d2a21; font: 600 20px "Segoe UI", sans-serif; }
 .programnews-count { color: #6d7873; font: 500 13px "DM Sans", sans-serif; }
 .programnews-table-wrap { overflow: auto; }
-.programnews-table { width: 100%; min-width: 980px; border-collapse: collapse; }
+
+.programnews-table {
+    width: 100%;
+    min-width: 1100px;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
 
 .programnews-table th {
     padding: 15px 18px;
     background: #f8f4ea;
     color: #53615b;
-    text-align: left; padding-left: 24px;
-    th:nth-child(2), td:nth-child(2), th:nth-child(3),td:nth-child(3) {padding-left: 80px;}
+    text-align: left;
     font: 700 12px "DM Sans", sans-serif;
     text-transform: uppercase;
     letter-spacing: .04em;
@@ -119,10 +124,20 @@
     padding: 15px 18px;
     border-top: 1px solid #eee9df;
     color: #0d2a21;
+    text-align: left;
     font: 400 14px "DM Sans", sans-serif;
     vertical-align: middle;
+    overflow: hidden;
 }
 .programnews-table tbody tr:hover { background: rgba(248, 244, 234, .75); }
+
+.programnews-table th:nth-child(1), .programnews-table td:nth-child(1) { width: 110px; } 
+.programnews-table th:nth-child(2), .programnews-table td:nth-child(2) { width: auto; }  
+.programnews-table th:nth-child(3), .programnews-table td:nth-child(3) { width: 110px; } 
+.programnews-table th:nth-child(4), .programnews-table td:nth-child(4) { width: 140px; } 
+.programnews-table th:nth-child(5), .programnews-table td:nth-child(5) { width: 140px; } 
+.programnews-table th:nth-child(6), .programnews-table td:nth-child(6) { width: 120px; } 
+.programnews-table th:nth-child(7), .programnews-table td:nth-child(7) { width: 170px; } 
 
 .programnews-thumb {
     width: 62px;
@@ -140,15 +155,15 @@
 .programnews-thumb svg { width: 20px; height: 20px; }
 .programnews-cell-ellipsis {
     display: block;
-    max-width: 240px;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.programnews-title-cell { max-width: 340px; }
+.programnews-title-cell { min-width: 0; }
 .programnews-title-text {
     display: block;
-    max-width: 320px;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -157,7 +172,7 @@
 }
 .programnews-excerpt {
     display: block;
-    max-width: 320px;
+    max-width: 100%;
     margin-top: 3px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -175,8 +190,9 @@
 .programnews-status-published { background: #e2f4eb; color: #00633f; }
 .programnews-status-draft { background: #fff4d6; color: #8a6400; }
 .programnews-status-archived { background: #eceeed; color: #55615b; }
+.programnews-status-expired { background: #fdecea; color: #b42318; }
 
-.programnews-actions { display: flex; gap: 8px; justify-content: flex-start; padding-right: 14px; box-sizing: border-box; }
+.programnews-actions { display: flex; gap: 8px; justify-content: flex-start; box-sizing: border-box; }
 .programnews-action-btn {
     width: 34px;
     height: 34px;
@@ -358,6 +374,7 @@
 .programnews-preview-eyebrow { margin: 0 0 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #b8902a; }
 .programnews-preview-name { margin: 0 0 12px; font-family: "Libre Baskerville", serif; font-size: 24px; line-height: 1.3; color: #0d2a21; }
 .programnews-preview-date { margin: 14px 0 0; font-size: 13px; color: #6d7873; }
+.programnews-preview-date + .programnews-preview-date { margin-top: 6px; }
 .programnews-preview-section { margin-top: 20px; padding: 18px 20px; background: #f8f4ea; border-radius: 18px; }
 .programnews-preview-label { margin: 0 0 8px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #6d7873; }
 .programnews-preview-text { margin: 0; font-size: 15px; line-height: 1.65; color: #2f3b36; white-space: pre-line; }

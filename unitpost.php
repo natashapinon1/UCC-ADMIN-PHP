@@ -1,5 +1,5 @@
 <?php
-$pageTitle = "Unit News";
+$pageTitle = "Unit Posts";
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -18,9 +18,10 @@ $pageTitle = "Unit News";
 </head>
 <body data-page-title="<?= htmlspecialchars($pageTitle) ?>">
 <div class="dashboard-layout">
-	<div id="sidebar-container"></div>
+	<?php include __DIR__ . '/template/sidebar.php'; ?>
 	<main class="main-content">
-		<div id="header-container"></div>
+		<?php include __DIR__ . '/template/header.php'; ?>
+		
 		<section class="unitnews-page">
 			<div class="unitnews-intro">
 				<div>
@@ -47,6 +48,7 @@ $pageTitle = "Unit News";
 						<option value="All">All statuses</option>
 						<option>Draft</option>
 						<option>Published</option>
+						<option>Expired</option>
 					</select>
 
 					<select id="newsSort" class="unitnews-filter" aria-label="Sort unit posts">
@@ -54,6 +56,8 @@ $pageTitle = "Unit News";
 						<option value="oldest">Oldest first</option>
 						<option value="title-asc">Title: A to Z</option>
 						<option value="title-desc">Title: Z to A</option>
+						<option value="expiry-asc">Expiry date: soonest</option>
+						<option value="expiry-desc">Expiry date: latest</option>
 					</select>
 				</div>
 				<button type="button" id="addNewsBtn" class="unitnews-btn unitnews-btn-primary"><i data-lucide="plus"></i> Add Unit Posts</button>
@@ -61,7 +65,7 @@ $pageTitle = "Unit News";
 
 			<div class="unitnews-card">
 				<div class="unitnews-card-head">
-					<h2>Unit News</h2>
+					<h2>Unit Posts</h2>
 					<span id="newsCount" class="unitnews-count">0 items</span>
 				</div>
 				<div class="unitnews-table-wrap">
@@ -73,6 +77,7 @@ $pageTitle = "Unit News";
 								<th>Unit</th>
 								<th>Excerpt</th>
 								<th>Publish Date</th>
+								<th>Expiry Date</th>
 								<th>Status</th>
 								<th>Actions</th>
 							</tr>
@@ -140,6 +145,10 @@ $pageTitle = "Unit News";
 								<span>Publish Date</span>
 								<input id="newsPublishDate" name="publishDate" type="date" required>
 							</label>
+							<label class="unitnews-form-field">
+								<span>Expiry Date (optional)</span>
+								<input id="newsExpiryDate" name="expiryDate" type="date">
+							</label>
 							<label class="unitnews-form-field full-width">
 								<span>Status</span>
 								<select id="newsStatus" name="status">
@@ -177,6 +186,7 @@ $pageTitle = "Unit News";
 							<h3 class="unitnews-preview-name" id="previewNewsTitle">Unit Posts title</h3>
 							<span id="previewNewsStatus" class="unitnews-status unitnews-status-draft">Draft</span>
 							<p class="unitnews-preview-date" id="previewNewsDate">—</p>
+							<p class="unitnews-preview-date" id="previewNewsExpiry">—</p>
 
 							<div class="unitnews-preview-section">
 								<p class="unitnews-preview-label">Excerpt</p>

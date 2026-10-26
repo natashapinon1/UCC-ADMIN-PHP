@@ -11,21 +11,29 @@
 	};
 
 	const items = [
-		{id:1, title:"BSIT Students Showcase Capstone Projects", excerpt:"Graduating BSIT students presented their capstone systems to faculty and industry guests.", program:"BSIT", image:"", publishDate:dayStr(-6), status:"Published", createdBy:"Admin", updatedBy:"Admin", createdAt:Date.now() - 7 * day},
-		{id:2, title:"BSCS Hosts Programming Contest", excerpt:"The annual inter-year programming contest challenged students with algorithm and problem-solving tasks.", program:"BSCS", image:"", publishDate:dayStr(-4), status:"Published", createdBy:"Admin", updatedBy:"Admin", createdAt:Date.now() - 5 * day},
-		{id:3, title:"Accountancy Review Program Opens", excerpt:"A free review program for incoming board examinees will start next month.", program:"BSA", image:"", publishDate:dayStr(5), status:"Draft", createdBy:"Admin", updatedBy:"Admin", createdAt:Date.now() - 3 * day},
-		{id:4, title:"BSED Practicum Orientation", excerpt:"Orientation for students about to begin their practicum in partner schools.", program:"BSED", image:"", publishDate:dayStr(-20), status:"Archived", createdBy:"Admin", updatedBy:"Admin", createdAt:Date.now() - 20 * day}
+		{id:1, title:"BSIT Students Showcase Capstone Projects", excerpt:"Graduating BSIT students presented their capstone systems to faculty and industry guests.", program:"BSIT", image:"", publishDate:dayStr(-6), expiryDate:dayStr(-2), status:"Published", createdBy:"Admin", updatedBy:"Admin", createdAt:Date.now() - 7 * day},
+		{id:2, title:"BSCS Hosts Programming Contest", excerpt:"The annual inter-year programming contest challenged students with algorithm and problem-solving tasks.", program:"BSCS", image:"", publishDate:dayStr(-4), expiryDate:dayStr(30), status:"Published", createdBy:"Admin", updatedBy:"Admin", createdAt:Date.now() - 5 * day},
+		{id:3, title:"Accountancy Review Program Opens", excerpt:"A free review program for incoming board examinees will start next month.", program:"BSA", image:"", publishDate:dayStr(5), expiryDate:null, status:"Draft", createdBy:"Admin", updatedBy:"Admin", createdAt:Date.now() - 3 * day},
+		{id:4, title:"BSED Practicum Orientation", excerpt:"Orientation for students about to begin their practicum in partner schools.", program:"BSED", image:"", publishDate:dayStr(-20), expiryDate:null, status:"Archived", createdBy:"Admin", updatedBy:"Admin", createdAt:Date.now() - 20 * day}
 	];
 	let nextId = 5, editingId = null, imageData = "", page = 1;
 	const pageSize = 10;
 
 	const tbody = $("pnTableBody"), search = $("pnSearch"), programFilter = $("programFilter"), statusFilter = $("pnStatusFilter"), sortSel = $("pnSort");
 	const formModal = $("pnFormModal"), previewModal = $("pnPreviewModal"), form = $("pnForm"), imageFile = $("pnImageFile");
+	const dateInput = $("pnDate"), expiryInput = $("pnExpiry");
 
 	const esc = v => String(v).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 	const fmtDate = ts => ts ? new Date(ts).toLocaleDateString("en-US", {year:"numeric", month:"short", day:"numeric"}) : "—";
 	const fmtDay = d => d ? new Date(d + "T00:00:00").toLocaleDateString("en-US", {year:"numeric", month:"short", day:"numeric"}) : "—";
+	const fmtExpiry = d => d ? fmtDay(d) : "No expiry";
 	const icons = () => { if (window.lucide) lucide.createIcons(); };
+
+	// A published post whose expiry date has passed is shown as "Expired".
+	const effectiveStatus = n => (n.status === "Published" && n.expiryDate && n.expiryDate < dayStr(0)) ? "Expired" : n.status;
+	// Keep the expiry picker from allowing a date before the publish date.
+	function syncExpiryMin() { if (expiryInput) expiryInput.min = (dateInput && dateInput.value) || ""; }
+	if (dateInput) dateInput.addEventListener("change", syncExpiryMin);
 
 	const pager = {
 		nav: $("programnewsPagination"), prev: $("programnewsPrevPage"), next: $("programnewsNextPage"),
@@ -67,7 +75,7 @@
 		pager.total.textContent = last + (last === 1 ? " page" : " pages");
 	}
 
-	const statusClass = s => ({Published:"programnews-status-published", Draft:"programnews-status-draft", Archived:"programnews-status-archived"}[s] || "programnews-status-draft");
+	const statusClass = s => ({Published:"programnews-status-published", Draft:"programnews-status-draft", Archived:"programnews-status-archived", Expired:"programnews-status-expired"}[s] || "programnews-status-draft");
 
 	function toast(message) {
 		const t = $("pnToast"); t.textContent = message; t.classList.add("show");
@@ -79,11 +87,14 @@
 		const list = items.filter(n =>
 			(n.title + " " + n.excerpt + " " + n.program + " " + (PROGRAMS[n.program] || "")).toLowerCase().includes(q) &&
 			(pr === "All" || n.program === pr) &&
-			(st === "All" || n.status === st)
+			(st === "All" || effectiveStatus(n) === st)
 		);
 		list.sort((a, b) => {
 			if (mode === "oldest") return a.createdAt - b.createdAt;
 			if (mode === "title") return a.title.localeCompare(b.title);
+			// Posts with no expiry date always go last.
+			if (mode === "expiry-asc") return (a.expiryDate || "9999-12-31").localeCompare(b.expiryDate || "9999-12-31");
+			if (mode === "expiry-desc") return (b.expiryDate || "0000-01-01").localeCompare(a.expiryDate || "0000-01-01");
 			return b.createdAt - a.createdAt;
 		});
 		const last = Math.max(1, Math.ceil(list.length / pageSize));
@@ -92,13 +103,15 @@
 
 		tbody.innerHTML = visible.map(n => {
 			const archived = n.status === "Archived";
+			const shownStatus = effectiveStatus(n);
 			return `
 			<tr data-id="${n.id}">
 				<td><div class="programnews-thumb">${n.image ? `<img src="${n.image}" alt="">` : `<i data-lucide="image" aria-hidden="true"></i>`}</div></td>
 				<td class="programnews-title-cell"><span class="programnews-title-text" title="${esc(n.title)}">${esc(n.title)}</span><span class="programnews-excerpt" title="${esc(n.excerpt)}">${esc(n.excerpt)}</span></td>
 				<td><span class="programnews-cell-ellipsis" title="${esc(PROGRAMS[n.program] || n.program)}">${esc(n.program)}</span></td>
 				<td><span class="programnews-cell-ellipsis">${esc(fmtDay(n.publishDate))}</span></td>
-				<td><span class="programnews-status ${statusClass(n.status)}">${esc(n.status)}</span></td>
+				<td><span class="programnews-cell-ellipsis">${esc(fmtExpiry(n.expiryDate))}</span></td>
+				<td><span class="programnews-status ${statusClass(shownStatus)}">${esc(shownStatus)}</span></td>
 				<td><div class="programnews-actions">
 					<button class="programnews-action-btn" data-action="preview" type="button" title="Preview" aria-label="Preview ${esc(n.title)}"><i data-lucide="eye"></i></button>
 					<button class="programnews-action-btn programnews-action-edit" data-action="edit" type="button" title="Edit" aria-label="Edit ${esc(n.title)}"><i data-lucide="pencil"></i></button>
@@ -139,6 +152,8 @@
 		$("pnProgram").value = n ? n.program : "";
 		$("pnStatus").value = n && n.status !== "Archived" ? n.status : "Draft";
 		$("pnDate").value = n ? n.publishDate : dayStr(0);
+		if (expiryInput) expiryInput.value = n && n.expiryDate ? n.expiryDate : "";
+		syncExpiryMin();
 		setImage(n ? n.image : "");
 		formModal.classList.add("open"); formModal.setAttribute("aria-hidden", "false");
 		icons(); $("pnTitle").focus();
@@ -146,14 +161,17 @@
 	function closeForm() {
 		formModal.classList.remove("open"); formModal.setAttribute("aria-hidden", "true");
 		editingId = null; form.reset(); imageFile.value = ""; setImage("");
+		syncExpiryMin();
 	}
 
 	function openPreview(n) {
 		$("pnPreviewProgram").textContent = PROGRAMS[n.program] || n.program || "Program";
 		$("pnPreviewTitle").textContent = n.title || "Untitled program posts";
-		const shown = n.status, badge = $("pnPreviewStatus");
+		const shown = effectiveStatus(n), badge = $("pnPreviewStatus");
 		badge.textContent = shown; badge.className = "programnews-status " + statusClass(shown);
 		$("pnPreviewDate").textContent = n.publishDate ? "Publish date: " + fmtDay(n.publishDate) : "—";
+		const expiryEl = $("pnPreviewExpiry");
+		if (expiryEl) expiryEl.textContent = n.expiryDate ? "Expiry date: " + fmtDay(n.expiryDate) : "No expiry date";
 		$("pnPreviewExcerpt").textContent = n.excerpt || "";
 
 		const img = $("pnPreviewImage"), ph = $("pnPreviewNoImage");
@@ -208,7 +226,7 @@
 		openPreview({
 			title: $("pnTitle").value.trim(), excerpt: $("pnExcerpt").value.trim(), program: $("pnProgram").value,
 			status: existing && existing.status === "Archived" ? "Archived" : $("pnStatus").value,
-			publishDate: $("pnDate").value, image: imageData,
+			publishDate: $("pnDate").value, expiryDate: (expiryInput && expiryInput.value) || null, image: imageData,
 			createdBy: existing ? existing.createdBy : "Admin", createdAt: existing ? existing.createdAt : Date.now(),
 			updatedBy: existing ? existing.updatedBy : "Admin"
 		});
@@ -218,9 +236,14 @@
 		e.preventDefault();
 		const data = {
 			title: $("pnTitle").value.trim(), excerpt: $("pnExcerpt").value.trim(), program: $("pnProgram").value,
-			status: $("pnStatus").value, publishDate: $("pnDate").value, image: imageData
+			status: $("pnStatus").value, publishDate: $("pnDate").value, expiryDate: (expiryInput && expiryInput.value) || null, image: imageData
 		};
 		if (!data.title || !data.excerpt || !data.program || !data.publishDate) return;
+		if (data.expiryDate && data.expiryDate < data.publishDate) {
+			toast("Expiry date cannot be earlier than the publish date.");
+			if (expiryInput) expiryInput.focus();
+			return;
+		}
 		if (editingId !== null) {
 			const n = items.find(x => x.id === editingId);
 			if (n) {

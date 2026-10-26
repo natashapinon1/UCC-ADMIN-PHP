@@ -18,9 +18,10 @@ $pageTitle = "Program Posts";
 </head>
 <body data-page-title="<?= htmlspecialchars($pageTitle) ?>">
 <div class="dashboard-layout">
-	<div id="sidebar-container"></div>
+	<?php include __DIR__ . '/template/sidebar.php'; ?>
 	<main class="main-content">
-		<div id="header-container"></div>
+		<?php include __DIR__ . '/template/header.php'; ?>
+		
 		<section class="programnews-page">
 			<div class="programnews-intro">
 				<div>
@@ -49,12 +50,15 @@ $pageTitle = "Program Posts";
 						<option value="Draft">Draft</option>
 						<option value="Published">Published</option>
 						<option value="Archived">Archived</option>
+						<option value="Expired">Expired</option>
 					</select>
 
 					<select id="pnSort" class="programnews-filter" aria-label="Sort program posts">
 						<option value="newest">Newest first</option>
 						<option value="oldest">Oldest first</option>
 						<option value="title">Title A–Z</option>
+						<option value="expiry-asc">Expiry date: soonest</option>
+						<option value="expiry-desc">Expiry date: latest</option>
 					</select>
 				</div>
 				<button type="button" id="addProgramNews" class="programnews-btn programnews-btn-primary"><i data-lucide="plus"></i> Add Program News</button>
@@ -73,6 +77,7 @@ $pageTitle = "Program Posts";
 								<th>Title / Excerpt</th>
 								<th>Program</th>
 								<th>Publish Date</th>
+								<th>Expiry Date</th>
 								<th>Status</th>
 								<th>Actions</th>
 							</tr>
@@ -148,6 +153,10 @@ $pageTitle = "Program Posts";
 								<span>Publish Date</span>
 								<input id="pnDate" type="date" required>
 							</label>
+							<label class="programnews-form-field">
+								<span>Expiry Date (optional)</span>
+								<input id="pnExpiry" type="date">
+							</label>
 						</div>
 
 						<div class="programnews-form-actions">
@@ -178,6 +187,7 @@ $pageTitle = "Program Posts";
 							<h3 class="programnews-preview-name" id="pnPreviewTitle">Untitled program posts</h3>
 							<span id="pnPreviewStatus" class="programnews-status programnews-status-draft">Draft</span>
 							<p class="programnews-preview-date" id="pnPreviewDate">—</p>
+							<p class="programnews-preview-date" id="pnPreviewExpiry">—</p>
 
 							<div class="programnews-preview-section">
 								<p class="programnews-preview-label">Excerpt</p>

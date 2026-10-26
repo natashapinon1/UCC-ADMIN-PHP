@@ -18,9 +18,10 @@ $pageTitle = "Board of Regents";
 </head>
 <body data-page-title="<?= htmlspecialchars($pageTitle) ?>">
 <div class="dashboard-layout">
-	<div id="sidebar-container"></div>
+	<?php include __DIR__ . '/template/sidebar.php'; ?>
 	<main class="main-content">
-		<div id="header-container"></div>
+		<?php include __DIR__ . '/template/header.php'; ?>
+		
 		<section class="regents-page">
 			<div class="regents-intro">
 				<div>

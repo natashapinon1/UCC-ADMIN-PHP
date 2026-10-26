@@ -17,10 +17,11 @@ $pageTitle = "User Management";
 	<link rel="stylesheet" href="assets/css/users.css">
 </head>
 <body data-page-title="<?= htmlspecialchars($pageTitle) ?>">
-	<div class="dashboard-layout">
-	    <div id="sidebar-container"></div>
-		<main class="main-content">
-		    <div id="header-container"></div>
+<div class="dashboard-layout">
+	<?php include __DIR__ . '/template/sidebar.php'; ?>
+	<main class="main-content">
+		<?php include __DIR__ . '/template/header.php'; ?>
+        
             <section class="users-page">
                 <div class="users-intro">
                     <div><p>Manage administrative users and their access levels.</p></div>

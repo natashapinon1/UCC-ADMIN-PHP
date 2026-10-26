@@ -1,15 +1,125 @@
 (function () {
     const {fillMeta, $, esc, fmtDay, toast, openModal, closeModal, confirmDelete, list, icons, initMenu} = UCC;
-    const day = 86400000;
+
+    const csrfKey = () => {
+        const el = document.querySelector('input[name="csrf_key"]');
+        return el ? el.value : "";
+    };
+
+    const SORT_MAP = {
+        newest: "publish-desc",   
+        oldest: "publish-asc",
+        az: "title-asc",
+        za: "title-desc"
+    };
+
+    const CATEGORY_CLASSES = ["post"];   
+    const categoryNames = {};            
+
+    async function loadCategories() {
+        try {
+            const lists = await Promise.all(CATEGORY_CLASSES.map(async cls => {
+                const params = new URLSearchParams({class: cls});
+                const response = await fetch("api/categories/by-class.php?" + params.toString());
+                const result = await response.json();
+                return response.ok ? result.data : [];   
+            }));
+            const categories = lists.flat();
+
+            const sel = $("categoryFilter");
+            const current = sel.value;
+            sel.innerHTML = '<option value="all">All</option>' +
+                categories.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("");
+            if (current) sel.value = current;
+
+            categories.forEach(c => { categoryNames[c.id] = c.name; });
+            return true;
+        } catch (error) {
+            return false;   
+        }
+    }
+
+    async function loadArchive() {
+        try {
+            const sortValue = $("orderFilter").value;
+            const params = new URLSearchParams({
+                search: $("archiveSearch").value.trim(),
+                filter: $("categoryFilter").value,          
+                sort: SORT_MAP[sortValue] || sortValue
+            });
+
+            const response = await fetch("api/archive/filter.php?" + params.toString());
+            const result = await response.json();
+
+            if (!response.ok) {
+                await showAlert(false, result.message);
+                return false;
+            }
+
+            items.splice(0, items.length, ...result.data.map(r => fromApi(r)));
+            table.reset();
+            return true;
+        } catch (error) {
+            await showUnexpectedError(error);
+            return false;
+        }
+    }
+
+    async function unarchivePost(id, category) {
+        return sendPostAction("api/archive/unarchive.php", id, category);
+    }
+
+    async function deletePost(id, category) {
+        return sendPostAction("api/archive/delete.php", id, category);
+    }
+
+    async function sendPostAction(url, id, category) {
+        try {
+            const formData = new FormData();
+            formData.append("csrf_key", csrfKey());
+            formData.append("id", id);
+            formData.append("category", category);
+
+            const response = await fetch(url, {
+                method: "POST",
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                await showAlert(false, result.message);
+                return false;
+            }
+
+            await showAlert(true, result.message);
+            return true;
+        } catch (error) {
+            await showUnexpectedError(error);
+            return false;
+        }
+    }
+
+    const fromApi = r => ({
+        id: Number(r.id),
+        title: r.title,
+        excerpt: r.excerpt,
+        content: r.content,
+        category: r.category,                                                  
+        categoryName: r.category_name || categoryNames[r.category] || r.category,   
+        publish: r.publish_date,
+        archived: r.archived_date,
+        image: r.featured_image || "",
+        createdBy: r.created_by,
+        updatedBy: r.updated_by,
+        createdAt: r.created_at ? new Date(r.created_at).getTime() : 0
+    });
+
     const items = [];
-    const mk = (id, title, category, publish, archived, excerpt, content, ago) => items.push({id, title, category, publish, archived, image: "", excerpt, content, createdBy: "Admin", updatedBy: "Admin", createdAt: Date.now() - ago * day});
-    mk(101, "UCC Opens Applications for the New Academic Year", "Admission", "2026-06-12", "2026-10-10", "Application details, requirements, and important dates for incoming students.", "The University of Caloocan City announces the opening of applications for the upcoming academic year. Applicants are encouraged to review the admission requirements and submit complete documents within the published application period.", 12);
-    mk(102, "University Community Celebrates Founding Anniversary", "News", "2026-05-28", "2026-10-09", "Highlights from the university’s founding anniversary celebration.", "The university community came together to celebrate its founding anniversary, recognizing the people and milestones that have shaped UCC. The celebration highlighted the university’s continuing commitment to accessible education and public service.", 11);
-    const cats = ["Announcement", "Event", "Student Life", "Community Extension Services", "Alumni", "Careers", "College News", "Program News", "News", "Event"];
-    cats.forEach((c, i) => mk(103 + i, "Archived " + c + " Sample " + (i + 1), c, "2026-0" + (1 + (i % 6)) + "-1" + (i % 9), "2026-10-0" + (1 + (i % 8)), "Sample excerpt for archived " + c + " post " + (i + 1) + ".", "Sample content for archived " + c + " post " + (i + 1) + ". Use this row to test preview, restore, and permanent delete.", 10 - i));
 
     const previewModal = $("archivePreviewModal");
 
+    const noSort = () => 0;
     const table = list({
         items: () => items,
         tbody: $("archiveTableBody"), search: $("archiveSearch"), filter: $("categoryFilter"), sort: $("orderFilter"),
@@ -21,19 +131,14 @@
         },
         cols: 6, emptyText: "No archived content found.",
         countLabel: n => n + (n === 1 ? " archived item" : " archived items"),
-        match: (it, q) => (it.title + " " + it.excerpt + " " + it.category).toLowerCase().includes(q),
-        filterFn: (it, f) => f === "all" || it.category === f,
-        sorters: {
-            newest: (a, b) => b.publish.localeCompare(a.publish),
-            oldest: (a, b) => a.publish.localeCompare(b.publish),
-            az: (a, b) => a.title.localeCompare(b.title),
-            za: (a, b) => b.title.localeCompare(a.title)
-        },
+        match: () => true,
+        filterFn: () => true,
+        sorters: {newest: noSort, oldest: noSort, az: noSort, za: noSort},
         row: it => `
             <tr data-id="${it.id}">
                 <td><div class="archive-thumb">${it.image ? `<img src="${esc(it.image)}" alt="">` : `<i data-lucide="image" aria-hidden="true"></i>`}</div></td>
                 <td class="archive-title-cell"><span class="archive-cell-ellipsis" title="${esc(it.title)}">${esc(it.title)}</span><span class="archive-cell-ellipsis archive-excerpt-line">${esc(it.excerpt)}</span></td>
-                <td><span class="archive-category">${esc(it.category)}</span></td>
+                <td><span class="archive-category">${esc(it.categoryName)}</span></td>
                 <td>${esc(fmtDay(it.publish))}</td>
                 <td>${esc(fmtDay(it.archived))}</td>
                 <td><div class="archive-actions">
@@ -45,14 +150,17 @@
         onAction: async (action, id) => {
             const it = items.find(x => x.id === id);
             if (!it) return;
+
             if (action === "preview") showPreview(it);
+
             if (action === "restore" && await confirmDelete("Restore this post?", it.title, "Yes, restore")) {
-                items.splice(items.indexOf(it), 1);
-                table.render(); toast("Post restored to the active list.");
+                if (!await unarchivePost(it.id, it.category)) return;
+                await loadArchive();
             }
+
             if (action === "delete" && await confirmDelete("Delete permanently?", it.title)) {
-                items.splice(items.indexOf(it), 1);
-                table.render(); toast("Post permanently deleted.");
+                if (!await deletePost(it.id, it.category)) return;
+                await loadArchive();
             }
         }
     });
@@ -68,10 +176,17 @@
         openModal(previewModal);
     }
 
+    let searchTimer;
+    $("archiveSearch").addEventListener("input", () => { clearTimeout(searchTimer); searchTimer = setTimeout(loadArchive, 300); });
+    $("categoryFilter").addEventListener("change", loadArchive);
+    $("orderFilter").addEventListener("change", loadArchive);
+
     document.querySelectorAll("[data-close-preview]").forEach(b => b.addEventListener("click", () => closeModal(previewModal)));
     document.addEventListener("keydown", e => { if (e.key === "Escape" && previewModal.classList.contains("open")) closeModal(previewModal); });
 
     table.render();
     initMenu();
     icons();
+
+    loadCategories().then(loadArchive);
 })();

@@ -1,31 +1,166 @@
 (function () {
     const {$, esc, thumb, fmtDay, fmtDate, todayStr, toast, openModal, closeModal, confirmDelete, imageField, list, icons, initMenu} = UCC;
 
-    const effectiveStatus = it => (it.status === "Published" && it.expiryDate && it.expiryDate < todayStr()) ? "Expired" : it.status;
+    const csrfKey = () => {
+        const el = document.querySelector('input[name="csrf_key"]');
+        return el ? el.value : "";
+    };
 
-    const off = n => { const d = new Date(); d.setDate(d.getDate() + n); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
-    const day = 86400000;
-    const mk = (id, title, category, status, pub, exp, ago) => ({
-        id, title, category, status, publishDate: off(pub), expiryDate: exp === null ? null : off(exp),
-        excerpt: "Short summary for: " + title + ".",
-        content: "Full content for \"" + title + "\". This is sample text so you can test the preview, edit and archive features.",
-        image: "", createdBy: "Admin", updatedBy: id % 2 ? "Admin" : "", createdAt: Date.now() - ago * day
+    const SORT_MAP = {
+        "created-desc": "create-desc", "created-asc": "create-asc",
+        "date-desc": "publish-desc", "date-asc": "publish-asc",
+        "expiry-desc": "expiry-desc", "expiry-asc": "expiry-asc",
+        "title-desc": "title-desc", "title-asc": "title-asc"
+    };
+
+
+    const CATEGORY_CLASS = "post";   
+    const categoryNames = {};        
+
+    async function loadCategories() {
+        try {
+            const params = new URLSearchParams({class: CATEGORY_CLASS});
+
+            const response = await fetch("api/categories/by-class.php?" + params.toString());
+            const result = await response.json();
+
+            if (!response.ok) return false;   
+
+            const sel = $("postCategory");
+            const current = sel.value;
+            sel.innerHTML = result.data.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("");
+            if (current) sel.value = current;
+
+            result.data.forEach(c => { categoryNames[c.id] = c.name; });
+            return true;
+        } catch (error) {
+            return false;   
+        }
+    }
+
+    async function savePost(formData) {
+        try {
+            const response = await fetch("api/posts/save.php", {
+                method: "POST",
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                await showAlert(false, result.message);
+                return false;
+            }
+
+            await showAlert(true, result.message);
+            return true;
+        } catch (error) {
+            await showUnexpectedError(error);
+            return false;
+        }
+    }
+
+    async function loadPosts() {
+        try {
+            const sortValue = $("postSort").value;
+            const params = new URLSearchParams({
+                search: $("postSearch").value.trim(),
+                filter: $("postFilter").value.toLowerCase(),   
+                sort: SORT_MAP[sortValue] || sortValue
+            });
+
+            const response = await fetch("api/posts/filter.php?" + params.toString());
+            const result = await response.json();
+
+            if (!response.ok) {
+                await showAlert(false, result.message);
+                return false;
+            }
+
+            items.splice(0, items.length, ...result.data.map(r => fromApi(r)));
+            table.reset();
+            return true;
+        } catch (error) {
+            await showUnexpectedError(error);
+            return false;
+        }
+    }
+
+    async function fetchPost(id) {
+        try {
+            const params = new URLSearchParams({id});
+
+            const response = await fetch("api/posts/item.php?" + params.toString());
+            const result = await response.json();
+
+            if (!response.ok) {
+                await showAlert(false, result.message);
+                return null;
+            }
+
+            const displayStatus = result.display_status || (result.data && result.data.display_status);
+            return fromApi(result.data, displayStatus);
+        } catch (error) {
+            await showUnexpectedError(error);
+            return null;
+        }
+    }
+
+    async function archivePost(id) {
+        try {
+            const formData = new FormData();
+            formData.append("csrf_key", csrfKey());   
+            formData.append("id", id);
+
+            const response = await fetch("api/posts/archive.php", {
+                method: "POST",
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                await showAlert(false, result.message);
+                return false;
+            }
+
+            await showAlert(true, result.message);
+            return true;
+        } catch (error) {
+            await showUnexpectedError(error);
+            return false;
+        }
+    }
+
+    const fromApi = (r, displayStatus) => ({
+        id: Number(r.id),
+        title: r.title,
+        excerpt: r.excerpt,
+        content: r.content,
+        category: r.category,
+        categoryName: r.category_name || categoryNames[r.category] || r.category,
+        status: r.status,
+        displayStatus: displayStatus || r.display_status || r.status,
+        publishDate: r.publish_date,
+        expiryDate: r.expiration_date || null,
+        image: r.featured_image || "",
+        createdBy: r.created_by,
+        updatedBy: r.updated_by,
+        createdAt: r.created_at ? new Date(r.created_at).getTime() : 0
     });
-    const items = [
-        mk(1, "UCC Opens Applications for the New Academic Year", "Admission", "Published", -10, 60, 12),
-        mk(2, "University Community Celebrates Founding Anniversary", "News", "Published", -20, null, 11),
-        mk(3, "Enrollment Schedule for Second Semester", "Announcement", "Published", -5, 30, 10),
-        mk(4, "Student Leaders Join Leadership Summit", "Student Life", "Published", -8, null, 9),
-        mk(5, "Community Outreach Program in Caloocan", "Community Extension Services", "Published", -15, null, 8),
-    ];
-    let nextId = 13, editingId = null;
 
-    const statusCls = s => ({Published: "status-published", Draft: "status-draft", Pending: "status-pending", Archived: "status-archived", Expired: "status-expired"}[s] || "status-draft");
+    const effectiveStatus = it => it.displayStatus;
+
+    const items = [];
+    let editingId = null, isSaving = false;
+
+    const statusCls = s => ({published: "status-published", draft: "status-draft", pending: "status-pending", archived: "status-archived", expired: "status-expired"}[String(s).toLowerCase()] || "status-draft");
     const formModal = $("postModal"), previewModal = $("postPreviewModal"), form = $("postForm");
     const img = imageField({fileInput: $("featuredImage"), chooseBtn: $("uploadImageBtn"), removeBtn: $("removeImageBtn"), preview: $("imagePreview"), placeholder: $("uploadPlaceholder")});
 
+    const noSort = () => 0;
     const table = list({
-         items: () => items,
+        items: () => items,
         tbody: $("postsTableBody"), search: $("postSearch"), filter: $("postFilter"), sort: $("postSort"),
         count: $("postsCount"),
         pageSize: 10,
@@ -35,17 +170,13 @@
         },
         cols: 7, emptyText: "No posts found.",
         countLabel: n => n + (n === 1 ? " post" : " posts"),
-        match: (it, q) => (it.title + " " + it.category + " " + it.excerpt).toLowerCase().includes(q),
-        filterFn: (it, f) => f === "All" || effectiveStatus(it) === f,
+        match: () => true,
+        filterFn: () => true,
         sorters: {
-            "created-desc": (a, b) => b.createdAt - a.createdAt,
-            "created-asc": (a, b) => a.createdAt - b.createdAt,
-            "date-desc": (a, b) => b.publishDate.localeCompare(a.publishDate),
-            "date-asc": (a, b) => a.publishDate.localeCompare(b.publishDate),
-            "expiry-asc": (a, b) => (a.expiryDate || "9999-12-31").localeCompare(b.expiryDate || "9999-12-31"),
-            "expiry-desc": (a, b) => (b.expiryDate || "0000-01-01").localeCompare(a.expiryDate || "0000-01-01"),
-            "title-asc": (a, b) => a.title.localeCompare(b.title),
-            "title-desc": (a, b) => b.title.localeCompare(a.title)
+            "created-desc": noSort, "created-asc": noSort,
+            "date-desc": noSort, "date-asc": noSort,
+            "expiry-asc": noSort, "expiry-desc": noSort,
+            "title-asc": noSort, "title-desc": noSort
         },
         row: it => {
             const st = effectiveStatus(it);
@@ -53,25 +184,33 @@
             <tr data-id="${it.id}">
                 <td>${thumb(it.image, "image")}</td>
                 <td class="post-title-cell"><span class="cell-ellipsis" title="${esc(it.title)}">${esc(it.title)}</span></td>
-                <td><span class="cell-ellipsis category-text">${esc(it.category)}</span></td>
+                <td><span class="cell-ellipsis category-text">${esc(it.categoryName)}</span></td>
                 <td><span class="cell-ellipsis">${esc(fmtDay(it.publishDate))}</span></td>
                 <td><span class="cell-ellipsis">${it.expiryDate ? esc(fmtDay(it.expiryDate)) : "No expiry"}</span></td>
                 <td><span class="status-badge ${statusCls(st)}">${esc(st)}</span></td>
                 <td><div class="action-buttons">
                     <button class="action-btn" data-action="preview" type="button" title="Preview post" aria-label="Preview post"><i data-lucide="eye"></i></button>
                     <button class="action-btn edit" data-action="edit" type="button" title="Edit post" aria-label="Edit post"><i data-lucide="pencil"></i></button>
-                    ${it.status === "Archived" ? "" : '<button class="action-btn archive" data-action="archive" type="button" title="Archive post" aria-label="Archive post"><i data-lucide="archive"></i></button>'}
+                    ${String(it.status).toLowerCase() === "archived" ? "" : '<button class="action-btn archive" data-action="archive" type="button" title="Archive post" aria-label="Archive post"><i data-lucide="archive"></i></button>'}
                 </div></td>
             </tr>`;
         },
         onAction: async (action, id) => {
             const it = items.find(x => x.id === id);
             if (!it) return;
-            if (action === "preview") showPreview(it);
-            if (action === "edit") openForm(it);
+
+            if (action === "preview") {
+                const post = await fetchPost(id);
+                if (post) showPreview(post);
+            }
+            if (action === "edit") {
+                const post = await fetchPost(id);
+                if (post) openForm(post);
+            }
+
             if (action === "archive" && await confirmDelete("Archive this post?", it.title, "Yes, archive")) {
-                it.status = "Archived"; it.updatedBy = "Admin";
-                table.render(); toast("Post archived.");
+                if (!await archivePost(id)) return;
+                await loadPosts();
             }
         }
     });
@@ -84,8 +223,9 @@
         if (it && ![...sel.options].some(o => o.value === it.status)) sel.add(new Option(it.status, it.status));
         $("postTitle").value = it ? it.title : "";
         $("postExcerpt").value = it ? it.excerpt : "";
-        $("postCategory").value = it ? it.category : "News";
-        sel.value = it ? it.status : "Draft";
+
+        if (it) $("postCategory").value = it.category;
+        sel.value = it ? it.status : "draft";   
         $("postDate").value = it ? it.publishDate : todayStr();
         $("postExpiryDate").value = it && it.expiryDate ? it.expiryDate : "";
         $("postContent").value = it ? it.content : "";
@@ -103,7 +243,7 @@
         if (it.image) { pi.src = it.image; pi.hidden = false; pd.hidden = true; }
         else { pi.removeAttribute("src"); pi.hidden = true; pd.hidden = false; }
         $("previewMetadataCreatedBy").textContent = it.createdBy || "—";
-        $("previewMetadataDateCreated").textContent = fmtDate(it.createdAt);
+        $("previewMetadataDateCreated").textContent = it.createdAt ? fmtDate(it.createdAt) : "—";
         $("previewMetadataLastUpdatedBy").textContent = it.updatedBy || "—";
         $("previewMetadataExpiry").textContent = it.expiryDate ? fmtDay(it.expiryDate) : "No expiry";
         openModal(previewModal);
@@ -115,24 +255,59 @@
         content: $("postContent").value.trim(), image: img.get()
     });
 
+    function buildFormData(data, existing) {
+        const formData = new FormData();
+
+        formData.append("csrf_key", csrfKey());                         
+        formData.append("id", editingId !== null ? editingId : 0);      
+
+        formData.append("title", data.title);
+        formData.append("excerpt", data.excerpt);
+        formData.append("content", data.content);
+        formData.append("category", data.category);
+        formData.append("status", data.status);
+        formData.append("publish_date", data.publishDate);
+        formData.append("expiration_date", data.expiryDate || "");
+
+        const file = $("featuredImage").files[0];
+        if (file) {
+            formData.append("featured_image", file);
+        } else if (existing && existing.image && !data.image) {
+            formData.append("remove_featured_image", "1");
+        }
+
+        return formData;
+    }
+
     $("addPostBtn").addEventListener("click", () => openForm(null));
     $("formPreviewBtn").addEventListener("click", () => {
         const existing = editingId !== null ? items.find(x => x.id === editingId) : null;
         showPreview({createdBy: existing ? existing.createdBy : "Admin", createdAt: existing ? existing.createdAt : Date.now(), updatedBy: existing ? existing.updatedBy : "", ...readForm()});
     });
-    form.addEventListener("submit", e => {
+
+    form.addEventListener("submit", async e => {
         e.preventDefault();
+        if (isSaving) return;
+
         const data = readForm();
         if (!data.title || !data.excerpt || !data.content) return;
-        if (editingId !== null) {
-            Object.assign(items.find(x => x.id === editingId), data, {updatedBy: "Admin"});
-            toast("Post updated.");
-        } else {
-            items.push({id: nextId++, createdBy: "Admin", updatedBy: "", createdAt: Date.now(), ...data});
-            toast("Post added.");
-        }
-        table.reset(); closeForm();
+
+        const existing = editingId !== null ? items.find(x => x.id === editingId) : null;
+
+        isSaving = true;
+        const ok = await savePost(buildFormData(data, existing));
+        isSaving = false;
+        if (!ok) return;
+
+        closeForm();
+        await loadPosts();
     });
+
+    let searchTimer;
+    $("postSearch").addEventListener("input", () => { clearTimeout(searchTimer); searchTimer = setTimeout(loadPosts, 300); });
+    $("postFilter").addEventListener("change", loadPosts);
+    $("postSort").addEventListener("change", loadPosts);
+
     document.querySelectorAll("[data-close-modal]").forEach(b => b.addEventListener("click", closeForm));
     document.querySelectorAll("[data-close-preview]").forEach(b => b.addEventListener("click", () => closeModal(previewModal)));
     document.addEventListener("keydown", e => {
@@ -144,4 +319,6 @@
     table.render();
     initMenu();
     icons();
+
+    loadCategories().then(loadPosts);
 })();

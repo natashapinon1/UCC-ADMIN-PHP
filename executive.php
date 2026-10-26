@@ -18,9 +18,10 @@ $pageTitle = "Executive Officials";
 </head>
 <body data-page-title="<?= htmlspecialchars($pageTitle) ?>">
 <div class="dashboard-layout">
-	<div id="sidebar-container"></div>
+	<?php include __DIR__ . '/template/sidebar.php'; ?>
 	<main class="main-content">
-		<div id="header-container"></div>
+		<?php include __DIR__ . '/template/header.php'; ?>
+		
 		<section class="executive-page">
 			<div class="executive-intro">
 				<div>

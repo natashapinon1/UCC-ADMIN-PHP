@@ -285,9 +285,10 @@ $pageTitle = "Password";
 </head>
 <body data-page-title="<?= htmlspecialchars($pageTitle) ?>">
 	<div class="dashboard-layout">
-		<?php include __DIR__ . '/includes/sidebar.php'; ?>
+		<?php include __DIR__ . '/template/sidebar.php'; ?>
 		<main class="main-content">
-			<?php include __DIR__ . '/includes/header.php'; ?>
+			<?php include __DIR__ . '/template/header.php'; ?>
+
 			<section class="password-page">
 				<div class="password-card">
 					<div class="password-card-header">
